@@ -1,69 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title></title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-         /* In order to place the tracking correctly */
-         canvas.drawing, canvas.drawingBuffer {
-         position: absolute;
-         left: 0;
-         top: 0;
-         }
-         html, body {
-         height: 100%; /* IMPORTANT!!! Stretches viewport to 100% */
-         }
-      </style>
+        canvas.drawing, canvas.drawingBuffer {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #reader {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
     <script src="html5-qrcode.min.js"></script>
 </head>
 <body>
-<!-- Div to show the scanner -->
-<div id="reader" ></div>
-<script>
-  //refer doc here https://github.com/mebjas/html5-qrcode
- const html5QrCode = new Html5Qrcode("reader");
- console.log("Starting SCANNING CODE");
- const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-     html5QrCode.stop();
-     /* handle success for web */
-     window.parent.postMessage(decodedText, "*");
+    <div id="reader"></div>
+    <script>
+        const html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: 250 };
 
-     /* handle success for window */
-     if (window.chrome.webview != "undefined") {
-         var param = {
-             "methodName": "successCallback",
-             "data": decodedText
-         }
-         window.chrome.webview.postMessage(param);
-     }
+        // This function will be called once cameras are fetched.
+        Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length) {
+                window.parent.postMessage(JSON.stringify(devices), "*");
+            }
+        }).catch(err => {
+            console.log(err); // Log errors if any
+        });
 
- };
- const config = {
-     fps: 10,
-     qrbox: {
-         width: 280,
-         height: 120,
-         aspectRatio: 1.7777778
-     }
- };
-
- // If you want to prefer back camera
- html5QrCode.start({
-     facingMode: "environment"
- }, config, qrCodeSuccessCallback);
- //html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback);
-
- //Window event listener
- if (window.chrome.webview != undefined) {
-     window.chrome.webview.addEventListener('message', function(e) {
-         let data = JSON.parse(JSON.stringify(e.data));
-         if (data.event === "close") {
-             html5QrCode.stop();
-         }
-
-     });
- }
- </script>
+        // Listener for messages from Flutter
+        window.addEventListener('message', (event) => {
+            const selectedCameraId = event.data; // Camera ID selected in Flutter
+            html5QrCode.start(
+                selectedCameraId,
+                config,
+                (decodedText, decodedResult) => {
+                    // On QR code scanned
+                    html5QrCode.stop(); // Stop scanning
+                    window.parent.postMessage(decodedText, "*"); // Send result back to Flutter
+                }
+            ).catch(err => {
+                console.error("Error starting scanning", err); // Log errors if any
+            });
+        });
+    </script>
 </body>
 </html>
