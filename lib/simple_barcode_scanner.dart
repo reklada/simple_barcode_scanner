@@ -40,7 +40,9 @@ class SimpleBarcodeScannerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BarcodeScanner(
+      lineColor: lineColor,
       cancelButtonText: cancelButtonText,
+      isShowFlashIcon: isShowFlashIcon,
       scanType: scanType,
       appBarTitle: appBarTitle,
       centerTitle: centerTitle,
